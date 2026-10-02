@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoring Keluhan Member (Manager View)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 antialiased font-sans flex flex-col">
+
+  <!-- Header Navigasi -->
+  <header class="bg-slate-900 border-b border-slate-800 text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-sm">M</div>
+      <div>
+        <h1 class="text-base font-bold leading-none">Dashboard Monitoring Keluhan</h1>
+        <p class="text-xs text-slate-400 mt-1">Mode Pimpinan: Hanya Memantau & Evaluasi Suara Member</p>
+      </div>
+    </div>
+    <a href="/" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-200 transition">
+      Buka Form Member &rarr;
+    </a>
+  </header>
+
+  <main class="max-w-7xl mx-auto w-full p-4 sm:p-6 flex-1 space-y-6">
+
+    <!-- Ringkasan Angka Cepat -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Seluruh Keluhan Masuk</span>
+        <div class="text-2xl font-bold text-slate-900 mt-1"><%= summary.total_all || 0 %></div>
+      </div>
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Keluhan Masuk Hari Ini</span>
+        <div class="text-2xl font-bold text-blue-600 mt-1"><%= summary.total_today || 0 %></div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+      <form method="GET" action="/manager" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+        
+        <!-- Filter Cabang -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Cabang</label>
+          <select name="branch_id" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none">
+            <option value="">Semua Cabang</option>
+            <% branches.forEach(function(b) { %>
+              <option value="<%= b.id %>" <%= filters.branch_id == b.id ? 'selected' : '' %>><%= b.nama_cabang %></option>
+            <% }); %>
+          </select>
+        </div>
+
+        <!-- Filter Kategori -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Kategori</label>
+          <select name="category_id" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none">
+            <option value="">Semua Kategori</option>
+            <% categories.forEach(function(c) { %>
+              <option value="<%= c.id %>" <%= filters.category_id == c.id ? 'selected' : '' %>><%= c.nama_kategori %></option>
+            <% }); %>
+          </select>
+        </div>
+
+        <!-- Tanggal Mulai -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Dari Tanggal</label>
+          <input type="date" name="start_date" value="<%= filters.start_date || '' %>" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none">
+        </div>
+
+        <!-- Tanggal Selesai -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Sampai Tanggal</label>
+          <input type="date" name="end_date" value="<%= filters.end_date || '' %>" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none">
+        </div>
+
+        <!-- Pencarian Kata Kunci / Kode Member -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Cari Keluhan / Kode</label>
+          <input type="text" name="search" placeholder="Kata kunci..." value="<%= filters.search || '' %>" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none">
+        </div>
+
+        <!-- Tombol Aksi -->
+        <div class="flex gap-2">
+          <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium py-2 px-3 rounded-lg text-xs transition">
+            Filter
+          </button>
+          <a href="/manager" class="py-2 px-3 border border-slate-300 hover:bg-slate-50 text-slate-600 rounded-lg text-xs transition text-center">
+            Reset
+          </a>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Tabel Monitoring Keluhan -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+        <h2 class="text-sm font-bold text-slate-800">Daftar Suara & Keluhan Masuk</h2>
+        <span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">
+          <%= complaints.length %> data
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+              <th class="py-3 px-4">Tanggal</th>
+              <th class="py-3 px-4">Kode Member</th>
+              <th class="py-3 px-4">Nama Member</th>
+              <th class="py-3 px-4">Cabang</th>
+              <th class="py-3 px-4">Kategori</th>
+              <th class="py-3 px-4 w-2/5">Isi Keluhan</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <% if (complaints.length === 0) { %>
+              <tr>
+                <td colspan="6" class="text-center py-12 text-slate-400">
+                  Tidak ada data keluhan yang sesuai dengan filter.
+                </td>
+              </tr>
+            <% } else { %>
+              <% complaints.forEach(function(item) { %>
+                <tr class="hover:bg-slate-50 transition">
+                  <td class="py-3.5 px-4 font-medium text-slate-700 whitespace-nowrap">
+                    <%= item.tanggal_formatted %>
+                  </td>
+                  <td class="py-3.5 px-4 font-mono font-semibold text-blue-600 whitespace-nowrap">
+                    <%= item.kode_member %>
+                  </td>
+                  <td class="py-3.5 px-4 text-slate-800 whitespace-nowrap">
+                    <%= item.nama_member %>
+                  </td>
+                  <td class="py-3.5 px-4 text-slate-700 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800">
+                      <%= item.nama_cabang %>
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-4 text-slate-700 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                      <%= item.nama_kategori %>
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-4 text-slate-600 leading-relaxed">
+                    <%= item.keluhan %>
+                  </td>
+                </tr>
+              <% }); %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-200 bg-white">
+    Dashboard Monitoring Internal &bull; Read-Only Manager Access
+  </footer>
+
+</body>
+</html>
